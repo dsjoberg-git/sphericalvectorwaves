@@ -1,0 +1,696 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{tikz}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    }
+\urlstyle{same}
+
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\unitvec}[1]{\hat{\vec{#1}}}
+\newcommand{\mrm}[1]{\mathrm{#1}}
+\newcommand{\diff}{\operatorname{d}\!}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\unit}[1]{\ensuremath{\,\mrm{#1}}}
+\renewcommand{\Re}{\operatorname{Re}}
+\renewcommand{\Im}{\operatorname{Im}}
+
+\newcommand{\iu}{\mrm{i}}
+\newcommand{\ju}{\mrm{j}}
+\newcommand{\eu}{\mrm{e}}
+\newcommand{\cu}{\mrm{c}_{0}}
+\newcommand{\Ev}{\vec{E}}
+\newcommand{\Hv}{\vec{H}}
+\newcommand{\Fv}{\vec{F}}
+\newcommand{\Av}{\vec{A}}
+\newcommand{\Kv}{\vec{K}}
+\newcommand{\pv}{\vec{p}}
+\newcommand{\rv}{\vec{r}}
+\newcommand{\kv}{\vec{k}}
+\newcommand{\av}{\vec{a}}
+\newcommand{\Zv}{\vec{0}}
+\newcommand{\xuv}{\unitvec{x}}
+\newcommand{\yuv}{\unitvec{y}}
+\newcommand{\zuv}{\unitvec{z}}
+\newcommand{\ruv}{\unitvec{r}}
+\newcommand{\nuv}{\unitvec{n}}
+\newcommand{\tuv}{\unitvec{t}}
+\newcommand{\kuv}{\unitvec{k}}
+\newcommand{\uuv}{\unitvec{u}}
+\newcommand{\rhouv}{\unitvec{\rho}}
+\newcommand{\varphiuv}{\unitvec{\varphi}}
+\newcommand{\puv}{\unitvec{p}}
+\newcommand{\suv}{\unitvec{s}}
+\newcommand{\IM}{\mat{I}}
+\newcommand{\ZM}{\mat{Z}}
+\newcommand{\SM}{\mat{S}}
+\newcommand{\TM}{\mat{T}}
+\newcommand{\rmat}{\mat{r}}
+
+\newcommand{\thetauv}{\unitvec{\theta}}
+\newcommand{\phiuv}{\unitvec{\phi}}
+
+\newcommand{\BesselJ}{\operatorname{J}}
+
+\newcommand{\uv}{\vec{u}}
+\newcommand{\vv}{\vec{v}}
+\newcommand{\epsm}{\boldsymbol{\epsilon}}
+\newcommand{\mum}{\boldsymbol{\mu}}
+
+\newcommand{\ordo}{\operatorname{o}}
+\newcommand{\Ordo}{\operatorname{O}}
+
+\usepackage{listings}
+
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+
+
+
+\title{Spherical vector waves}
+
+\author{Daniel Sj\"oberg}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  This document covers the details of a python implementation of
+  spherical harmonics and spherical vector waves based on Hansen's
+  formulation.
+\end{abstract}
+
+
+\section{Introduction}
+
+\section{Definitions from Hansen \cite{Hansen1988}}
+
+\begin{itemize}
+\item Wave \textbf{ADMITTANCE} is denoted
+  \begin{equation}
+    \eta = \sqrt{\epsilon/\mu}
+  \end{equation}
+\item Time convention
+  \begin{equation}
+    \eu^{-\iu\omega t}
+  \end{equation}
+\item Generating function
+  \begin{equation}
+    F_{mn}^{(c)}(r,\theta,\phi) = \frac{1}{\sqrt{2\pi}} \frac{1}{\sqrt{n(n+1)}} \left(-\frac{m}{|m|}\right)^{m} z_{n}^{(c)}(kr) \bar{P}_{n}^{|m|}(\cos\theta) \eu^{\iu m\phi}
+  \end{equation}
+  with $(-m/|m|)^{m} = 1$ for $m=0$.
+\item Normalized associated Legendre functions
+  \begin{equation}
+    \bar{P}_{n}^{m}(\cos\theta) = \sqrt{\frac{2n+1}{2}\frac{(n-m)!}{(n+m)!}} P_{n}^{m}(\cos\theta)
+  \end{equation}
+  with (note the absence of the Condon-Shortley phase factor $(-1)^{m}$)
+  \begin{equation}
+    P_{n}^{m}(\cos\theta) = (\sin\theta)^{m}\frac{\diff^{m}P_{n}(\cos\theta)}{\diff(\cos\theta)^{m}}
+  \end{equation}
+\item Derivative of associated Legendre function ($\frac{\diff P_{n}^{m}(\cos\theta)}{\diff\theta} = -\sin\theta\frac{\diff P_{n}^{m}(\cos\theta)}{\diff(\cos\theta)}$)
+  % \begin{equation}
+  %   \frac{\diff P_{n}^{m}(\cos\theta)}{\diff\theta} =
+  %   \begin{cases}
+  %     -P_{n}^{1}(\cos\theta) & m=0 \\
+  %     \frac{1}{2}\{(n-m+1)(n+m)P_{n}^{m-1}(\cos\theta) -P_{n}^{m+1}(\cos\theta) & m>0
+  %   \end{cases}
+  % \end{equation}
+  \begin{equation}
+    \frac{\diff P_{n}^{m}(x)}{\diff x} =
+    \begin{cases}
+      -\frac{1}{\sqrt{1-x^{2}}}P_{n}^{1}(x) & m=0 \\
+      \frac{(n + m)(n - m + 1)}{\sqrt{1 - x^{2}}} P_{n}^{m-1}(x) + \frac{mx}{1-x^{2}}P_{n}^{m}(x) & m >0
+    \end{cases}
+  \end{equation}
+\item Radial functions
+  \begin{equation}
+    R_{sn}^{(c)}(kr) =
+    \begin{cases}
+      z_{n}^{(c)}(kr), & s=1 \\
+      \frac{1}{kr}\frac{\diff}{\diff(kr)}\{krz_{n}^{(c)}(kr)\}, & s=2
+    \end{cases}
+  \end{equation}
+  where
+  \begin{align}
+    z_{n}^{(1)}(kr) &= j_{n}(kr) && \text{(spherical Bessel function)} \\
+    z_{n}^{(2)}(kr) &= y_{n}(kr) && \text{(spherical Neumann function)} \\
+    z_{n}^{(3)}(kr) &= h_{n}^{(1)}(kr) = j_{n}(kr) + \iu y_{n}(kr) && \text{(spherical Hankel function of the first kind)} \\
+    z_{n}^{(4)}(kr) &= h_{n}^{(2)}(kr) = j_{n}(kr) - \iu y_{n}(kr) && \text{(spherical Hankel function of the second kind)}     
+  \end{align}
+\item Spherical vector waves
+  \begin{multline}
+    \Fv^{(c)}_{1mn}(r,\theta,\phi) = \nabla F_{mn}^{(c)}(r,\theta,\phi)\times\rv \\
+    = \frac{1}{\sqrt{2\pi}} \frac{1}{\sqrt{n(n+1)}} \left(-\frac{m}{|m|}\right)^{m} \bigg\{ z_{n}^{(c)}(kr) \frac{\iu m\bar{P}_{n}^{|m|}(\cos\theta)}{\sin\theta} \eu^{\iu m\phi}\thetauv \\
+    - z_{n}^{(c)}(kr) \frac{\diff \bar{P}_{n}^{|m|}(\cos\theta)}{\diff\theta} \eu^{\iu m\phi}\phiuv \bigg\}
+  \end{multline}
+  \begin{multline}
+    \Fv^{(c)}_{2mn}(r,\theta,\phi) = \frac{1}{k}\nabla\times\Fv_{1mn}^{(c)}(r,\theta,\phi) \\
+    = \frac{1}{\sqrt{2\pi}} \frac{1}{\sqrt{n(n+1)}} \left(-\frac{m}{|m|}\right)^{m} \bigg\{ \frac{n(n+1)}{kr} z_{n}^{(c)}(kr) \bar{P}_{n}^{|m|}(\cos\theta) \eu^{\iu m\phi}\ruv \\
+    + \frac{1}{kr}\frac{\diff}{\diff(kr)} \left\{krz_{n}^{(c)}(kr)\right\} \frac{\diff \bar{P}_{n}^{|m|}(\cos\theta)}{\diff\theta} \eu^{\iu m\phi}\thetauv \\
+    + \frac{1}{kr}\frac{\diff}{\diff(kr)} \left\{krz_{n}^{(c)}(kr)\right\} \frac{\iu m\bar{P}_{n}^{|m|}(\cos\theta)}{\sin\theta} \eu^{\iu m\phi} \phiuv \bigg\}
+  \end{multline}
+  (A third spherical vector wave
+  $\Fv_{3mn}^{(c)}(r,\theta,\phi) \sim \nabla
+  F_{mn}^{(c)}(r,\theta,\phi)$ can be defined, but is not used in
+  \cite{Hansen1988}.)
+\item Conjugation relations (assuming $kr$ is real)
+  \begin{align}
+    \Fv_{smn}^{(1)*}(r,\theta,\phi) &= (-1)^{m}\Fv_{s,-m,n}^{(1)}(r,\theta,\phi) \\
+    \Fv_{smn}^{(2)*}(r,\theta,\phi) &= (-1)^{m}\Fv_{s,-m,n}^{(2)}(r,\theta,\phi) \\
+    \Fv_{smn}^{(3)*}(r,\theta,\phi) &= (-1)^{m}\Fv_{s,-m,n}^{(4)}(r,\theta,\phi) \\
+    \Fv_{smn}^{(4)*}(r,\theta,\phi) &= (-1)^{m}\Fv_{s,-m,n}^{(3)}(r,\theta,\phi)
+  \end{align}
+  Summary:
+  $\Fv_{smn}^{(c)*}(r,\theta,\phi) =
+  (-1)^{m}\Fv_{s,-m,n}^{(c')}(r,\theta,\phi)$, where $c'=1,2$ if
+  $c=1,2$, and $c'=4,3$ if $c=3,4$.
+\item Expansion of fields and power
+  \begin{align}
+    \Ev(r,\theta,\phi) &= \frac{k}{\sqrt{\eta}}\sum_{csmn} Q_{smn}^{(c)}\Fv_{smn}^{(c)}(r,\theta,\phi) \\
+    \Hv(r,\theta,\phi) &= -\iu k\sqrt{\eta}\sum_{csmn} Q_{smn}^{(c)}\Fv_{3-s,m,n}^{(c)}(r,\theta,\phi) \\
+    P &= \oint\frac{1}{2}\Re(\Ev\times\Hv^{*})\cdot\nuv\diff S = \frac{1}{2}\sum_{smn}|Q_{smn}^{(3)}|^{2}
+  \end{align}
+  \begin{multline}
+    P = \oint\frac{1}{2}\Re(\Ev\times\Hv^{*})\cdot\nuv\diff S = \frac{1}{4} \oint (\Ev\times\Hv^{*} + \Ev^{*}\times\Hv) \cdot \nuv \diff S\\
+    = \frac{1}{4}\sum_{csmn}\sum_{\gamma\sigma\mu\nu} \oint \left\{ Q_{smn}^{(c)}\Ev_{smn}^{(c)}\times(Q_{\sigma\mu\nu}^{(\gamma)}\Hv_{\sigma\mu\nu}^{(\gamma)})^{*} + (Q_{\sigma\mu\nu}^{(\gamma)}\Ev_{\sigma\mu\nu}^{(\gamma)})^{*}\times Q_{smn}^{(c)}\Hv_{smn}^{(c)} \right\} \cdot\nuv\diff S 
+  \end{multline}
+  Since
+  $\Ev_{\sigma\mu\nu}^{(\gamma)*} =
+  (-1)^{\mu}\frac{k}{\sqrt{\eta}}\Fv_{\sigma,-\mu,\nu}^{(\gamma')} =
+  (-1)^{\mu}\Ev_{\sigma,-\mu,\nu}^{(\gamma')}$ and
+  $\Hv_{\sigma\mu\nu}^{(\gamma)*} = (-1)^{\mu}\iu
+  k\sqrt{\eta}\Fv_{\sigma,-\mu,\nu}^{(\gamma')} =
+  -(-1)^{\mu}\Hv_{\sigma,-\mu,\nu}^{(\gamma')}$, we have
+  \begin{multline}
+    P = \frac{1}{4} \sum_{csmn}\sum_{\gamma\sigma\mu\nu} Q_{smn}^{(c)}Q_{\sigma\mu\nu}^{(\gamma)*} (-1)^{\mu} \oint \left\{ -\Ev_{smn}^{(c)}\times\Hv_{\sigma,-\mu,\nu}^{(\gamma')} + \Ev_{\sigma,-\mu,\nu}^{(\gamma')}\times\Hv_{smn}^{(c)} \right\} \cdot \nuv \diff S \\
+    = \frac{1}{4} \sum_{csmn}\sum_{\gamma\sigma\mu\nu} Q_{smn}^{(c)}Q_{\sigma\mu\nu}^{(\gamma)*} (-1)^{\mu} (-\delta_{s\sigma}\delta_{m,-(-\mu)}\delta_{n\nu}(-1)^{m}(-\iu)A^{(c,\gamma')}) \\
+    = \frac{1}{4} \sum_{c\gamma smn} Q_{smn}^{(c)}Q_{smn}^{(\gamma)*} \iu A^{(c,\gamma')}
+    = \sum_{smn}\frac{\iu}{4} [ Q_{smn}^{(1)}Q_{smn}^{(2)*} + Q_{smn}^{(1)}Q_{smn}^{(3)*}(-\iu) + Q_{smn}^{(1)}Q_{smn}^{(4)*}\iu \\
+    + Q_{smn}^{(2)}Q_{smn}^{(1)*}(-1) + Q_{smn}^{(2)}Q_{smn}^{(3)*}(-1) + Q_{smn}^{(2)}Q_{smn}^{(4)*}(-1) \\
+    + Q_{smn}^{(3)}Q_{smn}^{(1)*}(-\iu) + Q_{smn}^{(3)}Q_{smn}^{(2)*} + Q_{smn}^{(3)}Q_{smn}^{(3)*}(-2\iu) \\
+    + Q_{smn}^{(4)}Q_{smn}^{(1)*}\iu + Q_{smn}^{(4)}Q_{smn}^{(2)*} + Q_{smn}^{(4)}Q_{smn}^{(4)*}(2\iu) ] \\
+    = \frac{1}{2} \sum_{smn} \Big[ -\Im(Q_{smn}^{(1)}Q_{smn}^{(2)*}) + \Re(Q_{smn}^{(1)}Q_{smn}^{(3)*}) - \Re(Q_{smn}^{(1)}Q_{smn}^{(4)*}) \\
+    + \Im(Q_{smn}^{(2)}Q_{smn}^{(3)*}) + \Im(Q_{smn}^{(2)}Q_{smn}^{(4)*}) + |Q_{smn}^{(3)}|^{2} - |Q_{smn}^{(4)}|^{2} \Big] \\
+    = \frac{1}{2} \sum_{smn} \Big[ -\Im(Q_{smn}^{(1)}Q_{smn}^{(2)*}) + \Re(Q_{smn}^{(1)}(Q_{smn}^{(3)*} - Q_{smn}^{(4)*})) + \Im(Q_{smn}^{(2)}(Q_{smn}^{(3)*} + Q_{smn}^{(4)*})) \\
+      + |Q_{smn}^{(3)}|^{2} - |Q_{smn}^{(4)}|^{2} \Big]
+  \end{multline}
+  which is
+  $P = \frac{1}{2}\sum_{smn}|Q_{smn}^{(3)}|^{2} - |Q_{smn}^{(4)}|^{2}$
+  if $Q_{smn}^{(1)} = Q_{smn}^{(2)} = 0$.
+\item Single index convention
+  \begin{equation}
+    j = 2\{n(n+1) + m-1\} + s, \quad j = 1, 2, \ldots, J, \quad\text{where $J = 2N(N+2)$}
+  \end{equation}
+  with inverse
+  \begin{align}
+    s &= \begin{cases} 1 & \text{$j$ odd} \\ 2 & \text{$j$ even} \end{cases} \\
+    n &= \text{integer part of $\displaystyle\sqrt{\frac{j-s}{2}+1}$} \\
+    m &= \frac{j-s}{2} + 1 - n(n+1) 
+  \end{align}
+\item Representation of far fields
+  \begin{align}
+    \Kv_{smn}(\theta,\phi) &= \lim_{kr\rightarrow\infty} \left\{ \sqrt{4\pi}\frac{kr}{\eu^{\iu kr}} \Fv_{smn}^{(3)}(r,\theta,\phi) \right\} \\
+    \Kv_{1mn}(\theta,\phi) &= \sqrt{\frac{2}{n(n+1)}} \left(-\frac{m}{|m|}\right)^{m} \eu^{\iu m\phi} (-\iu)^{n+1} \left\{ \frac{\iu m\bar{P}_{n}^{|m|}(\cos\theta)}{\sin\theta}\thetauv - \frac{\diff\bar{P}_{n}^{|m|}(\cos\theta)}{\diff\theta}\phiuv \right\} \\
+    \Kv_{2mn}(\theta,\phi) &= \sqrt{\frac{2}{n(n+1)}} \left(-\frac{m}{|m|}\right)^{m} \eu^{\iu m\phi} (-\iu)^{n} \left\{ \frac{\diff\bar{P}_{n}^{|m|}(\cos\theta)}{\diff\theta}\thetauv + \frac{\iu m\bar{P}_{n}^{|m|}(\cos\theta)}{\sin\theta}\phiuv \right\} 
+  \end{align}
+\item Orthogonality
+
+  Product of radial components
+  \begin{multline}
+    \int_{\phi=0}^{2\pi}\int_{\theta=0}^{\pi} \{\Fv_{smn}^{(c)}(r,\theta,\phi)\cdot\ruv\} \{\Fv_{\sigma\mu\nu}^{(\gamma)}(r,\theta,\phi)\cdot\ruv\} \sin\theta\diff\theta\diff\phi \\
+    = \delta_{s\sigma}\delta_{s2}\delta_{m,-\mu}\delta_{n\nu}(-1)^{m}n(n+1)\frac{z_{n}^{(c)}(kr)}{kr}\frac{z_{n}^{(\gamma)}(kr)}{kr}
+  \end{multline}
+  Product of tangential components
+  \begin{multline}
+    \int_{\phi=0}^{2\pi}\int_{\theta=0}^{\pi} \Big[ \{\Fv_{smn}^{(c)}(r,\theta,\phi)\cdot\thetauv\} \{\Fv_{\sigma\mu\nu}^{(\gamma)}(r,\theta,\phi)\cdot\thetauv\} \\
+    + \{\Fv_{smn}^{(c)}(r,\theta,\phi)\cdot\phiuv\} \{\Fv_{\sigma\mu\nu}^{(\gamma)}(r,\theta,\phi)\cdot\phiuv\} \Big] \sin\theta\diff\theta\diff\phi \\
+    = \delta_{s\sigma}\delta_{m,-\mu}\delta_{n\nu}(-1)^{m}R_{sn}^{(c)}(kr)R_{sn}^{(\gamma)}(kr)
+    \label{eq:orthotang}
+  \end{multline}
+  Scalar product
+  \begin{multline}
+    \int_{\phi=0}^{2\pi}\int_{\theta=0}^{\pi} \Fv_{smn}^{(c)}(r,\theta,\phi) \cdot \Fv_{\sigma\mu\nu}^{(\gamma)}(r,\theta,\phi) \sin\theta\diff\theta\diff\phi \\
+    = \delta_{s\sigma}\delta_{m,-\mu}\delta_{n\nu}(-1)^{m} \left\{ R_{sn}^{(c)}(kr)R_{sn}^{(\gamma)}(kr) + \delta_{s2}n(n+1)\frac{z_{n}^{(c)}(kr)}{kr}\frac{z_{n}^{(\gamma)}(kr)}{kr} \right\}
+  \end{multline}
+  Vector product  
+  \begin{multline}
+    \int_{\phi=0}^{2\pi}\int_{\theta=0}^{\pi} \{ \Fv_{smn}^{(c)}(r,\theta,\phi) \times \Fv_{\sigma\mu\nu}^{(\gamma)}(r,\theta,\phi) \} \cdot \ruv \sin\theta\diff\theta\diff\phi \\
+    = -\delta_{s,3-\sigma}\delta_{m,-\mu}\delta_{n\nu}(-1)^{m+s} R_{sn}^{(c)}(kr)R_{3-s,n}^{(\gamma)}(kr)
+  \end{multline}
+\item Reciprocity integral
+
+  For the two fields, both representing a single mode with wave
+  coefficients equal to 1 watts$^{1/2}$
+  \begin{align}
+    (\Ev_{smn}^{(c)},\Hv_{smn}^{(c)}) &= \left( \frac{k}{\sqrt{\eta}}\Fv_{smn}^{(c)}(r,\theta,\phi), -\iu k\sqrt{\eta}\Fv_{3-s,m,n}^{(c)}(r,\theta,\phi) \right) \\
+    (\Ev_{\sigma\mu\nu}^{(\gamma)},\Hv_{\sigma\mu\nu}^{(\gamma)}) &= \left( \frac{k}{\sqrt{\eta}}\Fv_{\sigma\mu\nu}^{(\gamma)}(r,\theta,\phi), -\iu k\sqrt{\eta}\Fv_{3-\sigma,\mu,\nu}^{(\gamma)}(r,\theta,\phi) \right) 
+  \end{align}
+  we have
+  \begin{equation}
+    \oint_{S} \left\{ \Ev_{smn}^{(c)}\times\Hv_{\sigma\mu\nu}^{(\gamma)} - \Ev_{\sigma\mu\nu}^{(\gamma)}\times\Hv_{smn}^{(c)} \right\} \cdot \nuv\diff S = \delta_{s\sigma}\delta_{m,-\mu}\delta_{n\nu}(-1)^{m}(-\iu)A^{(c,\gamma)}
+  \end{equation}
+  where
+  \begin{center}
+    \begin{tabular}{c|cccc}
+      $A^{(c,\gamma)}$ & $\gamma=1$ & $\gamma=2$ & $\gamma=3$ & $\gamma=4$ \\ \hline
+      $c=1$ & $0$ & $1$ & $\iu$ & $-\iu$ \\
+      $c=2$ & $-1$ & $0$ & $-1$ & $-1$ \\
+      $c=3$ & $-\iu$ & $1$ & $0$ & $-2\iu$ \\
+      $c=4$ & $\iu$ & $1$ & $2\iu$ & $0$ 
+    \end{tabular}
+  \end{center}
+  Due to the reciprocity theorem, the surface $S$ can be deformed into
+  another surface $S'$ without changing the value of the integral, as
+  long as there are no sources between $S$ and $S'$.
+
+  Hence, if we know the outgoing field
+  $(\Ev(\rv),\Hv(\rv)) =
+  \sum_{smn}Q_{smn}^{(3)}(\Ev_{smn}^{(3)},\Hv_{smn}^{(3)})$ on a closed
+    surface $S$, we can compute the expansion coefficients from the
+    relation
+  \begin{equation}
+    \oint_{S} \left\{ \Ev\times\Hv_{s,-m,n}^{(1)} - \Ev_{s,-m,n}^{(1)}\times\Hv \right\} \cdot \nuv\diff S = (-1)^{m+1}Q_{smn}^{(3)}
+  \end{equation}
+
+\item Expansion coefficients of a plane wave (valid for $r<R\approx N/k$)
+  \begin{align}
+    \kv_{0} &= -k\sin\theta_{0}\cos\phi_{0}\xuv - k\sin\theta_{0}\sin\phi_{0}\yuv - k\cos\theta_{0}\zuv \\
+    \Ev_{0}\eu^{\iu\kv_{0}\cdot\rv} &= \frac{k}{\sqrt{\eta}} \sum_{s=1}^{2}\sum_{n=1}^{N}\sum_{m=-n}^{n} Q_{smn}\Fv_{smn}^{(1)}(r,\theta,\phi) \\
+    Q_{smn} &= \frac{\sqrt{\eta}}{k} (-1)^{m}\sqrt{4\pi}\iu\Ev_{0}\cdot\Kv_{s,-m,n}(\theta_{0},\phi_{0})
+  \end{align}
+
+\item Rotation: The original coordinate system is $(x,y,z)$, the final
+  is $(x',y',z')$. Three consecutive rotations (Euler angles) are
+  described as follows, where $(x_{1},y_{1},z_{1})$ is the coordinate
+  system after the first rotation, and $(x_{2},y_{2},z_{2})$ is the
+  coordinate system after the second rotation.
+  \begin{enumerate}
+  \item A rotation about the $z$-axis (through an angle $\phi_{0}$).
+  \item A rotation about the $y_{1}$-axis (through an angle $\theta_{0}$).
+  \item A rotation about the $z_{2}$-axis (through an angle $\chi_{0}$). 
+  \end{enumerate}
+  The spherical vector waves are rotated as
+  \begin{equation}
+    \Fv_{smn}^{(c)}(r,\theta,\phi) = \sum_{\mu=-n}^{n} \eu^{\iu m\phi_{0}} d_{\mu m}^{n}(\theta_{0})\eu^{\iu\mu\chi_{0}} \Fv_{s\mu n}^{(c)}(r',\theta',\phi')
+  \end{equation}
+  where (the symbol $\binom{i}{j} = \frac{i!}{(i-j)!j!}$ is the
+  binomial coefficient and the summation over $\sigma$ is such that no
+  factorial have a negative argument)
+  \begin{multline}
+    d_{\mu m}^{n}(\theta) = \left\{\frac{(n+\mu)!(n-\mu)!}{(n+m)!(n-m)!}\right\}^{1/2} \sum_{\sigma} \binom{n+m}{n-\mu-\sigma}\binom{n-m}{\sigma} (-1)^{n-\mu-\sigma} \\
+    \cdot\left(\cos\frac{\theta}{2}\right)^{2\sigma+\mu+m} \left(\sin\frac{\theta}{2}\right)^{2n-2\sigma-\mu-m}
+  \end{multline}
+  The rotation coefficient satisfies the normalization property
+  \begin{equation}
+    \sum_{\mu=-n}^{n}(d_{\mu m}^{n}(\theta))^{2} = 1, \quad \text{all $(m,n)$}
+  \end{equation}
+  and the orthogonality relation
+  \begin{equation}
+    \int_{0}^{\pi} d_{\mu m}^{n}(\theta)d_{\mu m}^{n'}(\theta)\sin\theta\diff\theta = \frac{2}{2n+1}\delta_{nn'}
+  \end{equation}
+  The transformation of expansion coefficients is given by
+  \begin{multline}
+    \Ev(\rv) = \sum_{csmn} Q_{smn}^{(c)}\Fv_{smn}^{(c)}(r,\theta,\phi) = \sum_{csmn} Q_{smn}^{(c)}\sum_{\mu=-n}^{n}\eu^{\iu m\phi_{0}} d_{\mu m}^{n}(\theta_{0})\eu^{\iu\mu\chi_{0}} \Fv_{s\mu n}^{(c)}(r',\theta',\phi') \\
+    = \sum_{cs\mu n}\underbrace{\left[\sum_{m} Q_{smn}^{(c)}\eu^{\iu m\phi_{0}} d_{\mu m}^{n}(\theta_{0})\eu^{\iu\mu\chi_{0}}\right]}_{=Q_{s\mu n}^{(c)'}} \Fv_{s\mu n}^{(c)}(r',\theta',\phi') 
+  \end{multline}
+  
+\item Translation: A spherical vector wave function defined in the
+  unprimed coordinate system $(r,\theta,\phi)$ may be expressed as a
+  combination of spherical waves defined in the primed system
+  $(r',\theta',\phi')$ (which is translated a distance $A$ in the
+  positive direction of the $z$-axis)
+  \begin{align}
+    \Fv_{s\mu n}^{(c)}(r,\theta,\phi) &= \sum_{\sigma=1}^{2} \sum_{\nu=|\mu|,\nu\neq0}^{\infty} C_{\sigma\mu\nu}^{sn(c)}(kA) \Fv_{\sigma\mu\nu}^{(1)}(r',\theta',\phi') & r'&<|A| \\
+    \Fv_{s\mu n}^{(c)}(r,\theta,\phi) &= \sum_{\sigma=1}^{2} \sum_{\nu=|\mu|,\nu\neq0}^{\infty} C_{\sigma\mu\nu}^{sn(1)}(kA) \Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi') & r'&>|A| 
+  \end{align}
+  where
+  \begin{multline}
+    C_{\sigma\mu\nu}^{sn(c)}(kA) = \sqrt{\frac{(2n+1)(2\nu+1)}{n(n+1)\nu(\nu+1)}} \sqrt{\frac{(\nu+\mu)!(n-\mu)!}{(\nu-\mu)!(n+\mu)!}} (-1)^{\mu} \frac{1}{2} \iu^{n-\nu} \\
+    \cdot \sum_{p=|n-\nu|}^{n+\nu} \Big[ \iu^{-p}(\delta_{s\sigma}\{n(n+1) + \nu(\nu+1) - p(p+1)\} + \delta_{3-s,\sigma}\{2\iu\mu kA\}) \\
+    \cdot a(\mu,n,-\mu,\nu,p) z_{p}^{(c)}(kA) \Big]
+  \end{multline}
+  and the linearization coefficients are
+  \begin{equation}
+    a(\mu,n,-\mu,\nu,p) = (2p+1) \left\{\frac{(n+\mu)!(\nu-\mu)!}{(n-\mu)!(\nu+\mu)!}\right\}^{1/2}
+    \begin{pmatrix}
+      n & \nu & p \\
+      0 & 0 & 0
+    \end{pmatrix}
+    \begin{pmatrix}
+      n & \nu & p \\
+      \mu & -\mu & 0
+    \end{pmatrix}
+  \end{equation}
+  where the Wigner 3-j symbols are
+  \begin{multline}
+    \begin{pmatrix}
+      j_{1} & j_{2} & j_{3} \\
+      m_{1} & m_{2} & m_{3}
+    \end{pmatrix} = \delta_{m_{1}+m_{2}+m_{3},0} (-1)^{j_{1}-j_{2}-m_{3}} \\
+    \cdot\sqrt{\frac{(j_{1}+j_{2}-j_{3})!(j_{1}-j_{2}+j_{3})!(-j_{1}+j_{2}+j_{3})!}{(j_{1}+j_{2}+j_{3}+1)!}} \\
+    \cdot \sqrt{(j_{1}-m_{1})!(j_{1}+m_{1})!(j_{2}-m_{2})!(j_{2}+m_{2})!(j_{3}-m_{3})!(j_{3}+m_{3})!} \\
+    \cdot \sum_{k=K}^{N} \frac{(-1)^{k}}{k!(j_{1}+j_{2}-j_{3}-k)!(j_{1}-m_{1}-k)!(j_{2}+m_{2}-k)!(j_{3}-j_{2}+m_{1}+k)!(j_{3}-j_{1}-m_{2}+k)!}
+  \end{multline}
+  with $K=\max(0,j_{2}-j_{3}-m_{1},j_{1}-j_{3}+m_{2})$ and
+  $N=\min(j_{1}+j_{2}-j_{3},j_{1}-m_{1},j_{2}+m_{2})$, that is, the
+  summation is taken such that the argument of each factorial in the
+  denominator is non-negative. Factorials of negative numbers are
+  taken as zero.
+
+  For $kA\rightarrow\infty$ we have the asymptotic result
+  \begin{align}
+    C_{\sigma\mu\nu}^{sn(3)}(kA) &= \ordo\left(\frac{1}{kA}\right) \quad \text{for $\mu\neq\pm1$} \\
+    C_{\sigma1\nu}^{sn(3)}(kA) &= \frac{\sqrt{(2n+1)(2\nu+1)}}{2} \iu^{\nu-n-1} \frac{\eu^{\iu kA}}{kA} + \ordo\left(\frac{1}{kA}\right) \\
+    C_{\sigma,-1,\nu}^{sn(3)}(kA) &= \frac{\sqrt{(2n+1)(2\nu+1)}}{2} \iu^{\nu-n-1} (-1)^{s+\sigma} \frac{\eu^{\iu kA}}{kA} + \ordo\left(\frac{1}{kA}\right)     
+  \end{align}
+  The transformation of expansion coefficients is given by (assuming
+  $r'>|A|$)
+  \begin{multline}
+    \Ev(\rv) = \sum_{cs\mu n} Q_{s\mu n}^{(c)}\Fv_{s\mu n}^{(c)}(r,\theta,\phi) \\
+    = \sum_{c}\sum_{s=1}^{2}\sum_{n=1}^{\infty}\sum_{\mu=-n}^{n} Q_{s\mu n}^{(c)}\sum_{\sigma=1}^{2}\sum_{\nu=|\mu|,\nu\neq0}^{\infty} C_{\sigma\mu\nu}^{sn(1)}(kA)\Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi') \\
+    = \sum_{c}\sum_{s=1}^{2}\sum_{n=1}^{\infty}\sum_{\mu=-\infty}^{\infty} \chi(|\mu|\leq n)Q_{s\mu n}^{(c)}\sum_{\sigma=1}^{2}\sum_{\nu=|\mu|,\nu\neq0}^{\infty} C_{\sigma\mu\nu}^{sn(1)}(kA)\Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi') \\
+    = \sum_{c}\sum_{\sigma=1}^{2}\sum_{\mu=-\infty}^{\infty}\sum_{\nu=|\mu|,\nu\neq0}^{\infty}\sum_{s=1}^{2}\sum_{n=1}^{\infty} \chi(|\mu|\leq n)Q_{s\mu n}^{(c)} C_{\sigma\mu\nu}^{sn(1)}(kA)\Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi') \\
+    = \sum_{c}\sum_{\sigma=1}^{2}\sum_{\mu=-\infty}^{\infty}\sum_{\nu=1}^{\infty}\sum_{s=1}^{2}\sum_{n=1}^{\infty} \chi(|\mu|\leq\nu)\chi(|\mu|\leq n)Q_{s\mu n}^{(c)} C_{\sigma\mu\nu}^{sn(1)}(kA)\Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi') \\
+    = \sum_{c}\sum_{\sigma=1}^{2}\sum_{\nu=1}^{\infty}\sum_{\mu=-\nu}^{\nu}\sum_{s=1}^{2}\sum_{n=|\mu|,n\neq0}^{\infty} Q_{s\mu n}^{(c)} C_{\sigma\mu\nu}^{sn(1)}(kA)\Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi') \\
+    = \sum_{c\sigma\mu\nu} \underbrace{\left[\sum_{s=1}^{2}\sum_{n=|\mu|,n\neq0}^{\infty}Q_{s\mu n}^{(c)}C_{\sigma\mu\nu}^{sn(1)}(kA)\right]}_{=Q_{\sigma\mu\nu}^{(c)'}} \Fv_{\sigma\mu\nu}^{(c)}(r',\theta',\phi')
+  \end{multline}
+  where the characteristic function $\chi(|\mu|\leq n)=1$ when
+  $|\mu|\leq n$ and 0 otherwise. In practice the sums of $n$ and $\nu$
+  are finite with $n\leq N$ and $\nu\leq N'$, where we estimate $N'$ as
+  the smallest integer larger than $N + kA$. For $r'<|A|$ we have
+  \begin{multline}
+    \Ev(\rv) = \sum_{cs\mu n} Q_{s\mu n}^{(c)}\Fv_{s\mu n}^{(c)}(r,\theta,\phi) \\
+    = \sum_{\sigma\mu\nu} \underbrace{\left[\sum_{c}\sum_{s=1}^{2}\sum_{n=|\mu|,n\neq0}^{\infty}Q_{s\mu n}^{(c)}C_{\sigma\mu\nu}^{sn(c)}(kA)\right]}_{=Q_{\sigma\mu\nu}^{(1)'}} \Fv_{\sigma\mu\nu}^{(1)}(r',\theta',\phi')
+  \end{multline}
+
+\item Scattering matrix of $P$-port antenna:
+  \begin{equation}
+    \Ev(r,\theta,\phi) = \frac{k}{\sqrt{\eta}} \sum_{j=1}^{J} a_{j}\Fv_{j}^{(4)}(r,\theta,\phi) + b_{j}\Fv_{j}^{(3)}(r,\theta,\phi)
+  \end{equation}
+  \begin{equation}
+    \begin{pmatrix}
+      \boldsymbol{\Gamma} & \mat{R} \\
+      \mat{T} & \mat{S} 
+    \end{pmatrix}
+    \begin{pmatrix}
+      \vec{v} \\
+      \vec{a}
+    \end{pmatrix} =
+    \begin{pmatrix}
+      \vec{w} \\
+      \vec{b}
+    \end{pmatrix}
+  \end{equation}
+  Source scattering (T-matrix)
+  \begin{equation}
+    \Ev(r,\theta,\phi) = \frac{k}{\sqrt{\eta}} \sum_{j=1}^{J} a_{j}'\Fv_{j}^{(1)}(r,\theta,\phi) + b_{j}'\Fv_{j}^{(3)}(r,\theta,\phi)
+  \end{equation}
+  \begin{equation}
+    \begin{pmatrix}
+      \boldsymbol{\Gamma}' & \mat{R}' \\
+      \mat{T}' & \mat{S}' 
+    \end{pmatrix}
+    \begin{pmatrix}
+      \vec{v} \\
+      \vec{a}'
+    \end{pmatrix} =
+    \begin{pmatrix}
+      \vec{w} \\
+      \vec{b}'
+    \end{pmatrix} \quad\Rightarrow\quad
+    \begin{pmatrix}
+      \boldsymbol{\Gamma}' & \mat{R}' \\
+      \mat{T}' & \mat{S}' 
+    \end{pmatrix} = 
+    \begin{pmatrix}
+      \boldsymbol{\Gamma} & \frac{1}{2}\mat{R} \\
+      \mat{T} & \frac{1}{2}(\mat{S}-\mat{I}) 
+    \end{pmatrix}
+  \end{equation}
+\end{itemize}
+
+\section{Definitions used in SciPy}
+
+\begin{itemize}
+\item Associated Legendre polynomials (scipy.special.lpmv)
+  \begin{equation}
+    \texttt{lpmv(m, n, x)} = \operatorname{P}_{n}^{m}(x) = (-1)^{m}(1 - x^{2})^{m/2} \frac{\diff^{m}P_{n}(x)}{\diff x^{m}}
+  \end{equation}
+  where the Legendre polynomials $P_{n}(x)$ are given by Rodrigues'
+  formula (same as in Hansen)
+  \begin{equation}
+    P_{n}(x) = \frac{1}{2^{n}n!}\frac{\diff^{n}}{\diff x^{n}}(x^{2} - 1)^{n}
+  \end{equation}
+  This definition of $\operatorname{P}_{n}^{m}(x)$ is the same as in
+  \cite[8.6.6 and 8.6.18]{Abramowitz+Stegun1970} and differs from the
+  definition of $P_{n}^{m}(x)$ in Hansen by the Condon-Shortley phase
+  function $(-1)^{m}$,
+  $\operatorname{P}_{n}^{m}(x) = (-1)^{m}P_{n}^{m}(x)$.
+
+  The derivative can be computed from the recursion relation
+  \cite[8.5.2]{Abramowitz+Stegun1970}
+  \begin{equation}
+    (z^{2}-1)\frac{\diff\operatorname{P}_{\nu}^{\mu}(z)}{\diff z} = (\nu+\mu)(\nu-\mu+1)(z^{2}-1)^{1/2}\operatorname{P}_{\nu}^{\mu-1}(z) - \mu z\operatorname{P}_{\nu}^{\mu}(z)
+  \end{equation}
+  Since we want to evaluate this on the cut $-1<x<1$, we follow
+  \cite[8.3.2 and 8.3.4]{Abramowitz+Stegun1970} and identify
+  $\operatorname{P}_{\nu}^{\mu}(x) =
+  \eu^{\pm\iu\mu\pi/2}\operatorname{P}_{\nu}^{\mu}(x\pm\iu0)$ and
+  $(z^{2}-1) = (1-(x\pm\iu0)^{2})\eu^{\pm\iu\pi} =
+  (1-x^{2})\eu^{\pm\iu\pi}$. After multiplication with
+  $\eu^{\pm\iu\mu\pi/2}$ the left hand side is then
+  \begin{equation}
+    (1-x^{2})\eu^{\pm\iu\pi}\eu^{\pm\iu\mu\pi/2}\frac{\diff\operatorname{P}_{\nu}^{\mu}(x\pm\iu0)}{\diff x} = -(1-x^{2})\frac{\diff\operatorname{P}_{\nu}^{\mu}(x)}{\diff x}
+  \end{equation}
+  and the right hand side is
+  \begin{multline}
+    (\nu+\mu)(\nu-\mu+1)(1-x^{2})^{1/2}\eu^{\pm\iu\pi/2}\eu^{\pm\iu\mu\pi/2}\operatorname{P}_{\nu}^{\mu-1}(x\pm\iu0) - \mu x\eu^{\pm\iu\mu\pi/2}\operatorname{P}_{\nu}^{\mu}(x\pm\iu0) \\
+    = (\nu+\mu)(\nu-\mu+1)(1-x^{2})^{1/2}\eu^{\pm\iu\pi/2}\eu^{\pm\iu\pi/2}\eu^{\pm\iu(\mu-1)\pi/2}\operatorname{P}_{\nu}^{\mu-1}(x\pm\iu0) - \mu x\eu^{\pm\iu\mu\pi/2}\operatorname{P}_{\nu}^{\mu}(x\pm\iu0) \\
+    = - (\nu+\mu)(\nu-\mu+1)(1-x^{2})^{1/2}\operatorname{P}_{\nu}^{\mu-1}(x) - \mu x\operatorname{P}_{\nu}^{\mu}(x) 
+  \end{multline}
+  Dividing left and right hand side by $-(1-x^{2})$ and restricting
+  our attention to integer order $\mu=m$ and degree $\nu=n$, we find
+  \begin{equation}
+    \frac{\diff\operatorname{P}_{n}^{m}(x)}{\diff x} = \frac{(n+m)(n-m+1)}{(1-x^{2})^{1/2}}\operatorname{P}_{n}^{m-1}(x) + \frac{mx}{1-x^{2}}\operatorname{P}_{n}^{m}(x)
+  \end{equation}
+  This relation can be used to compute all derivatives for positive
+  integers $1\leq m\leq n$, $n\geq1$. For $m=0$, we need to consider
+  \cite[8.2.5]{Abramowitz+Stegun1970}
+  \begin{equation}
+    \operatorname{P}_{\nu}^{-\mu}(z) = \frac{\Gamma(\nu-\mu+1)}{\Gamma(\nu+\mu+1)}\left[ \operatorname{P}_{\nu}^{\mu}(z) - \frac{2}{\pi}\eu^{-\iu\mu\pi}\sin(\mu\pi)Q_{\nu}^{\mu}(z)\right]
+  \end{equation}
+  For integers $\nu=n$ and $\mu=m$, we have
+  $\Gamma(n-m+1)/\Gamma(n+m+1) = (n-m)!/(n+m)!$ and $\sin(m\pi)=0$,
+  hence for $-1<x<1$ we have
+  $\eu^{\pm\iu(-m)\pi/2}\operatorname{P}_{n}^{-m}(x) =
+  \frac{(n-m)!}{(n+m)!}\eu^{\pm\iu
+    m\pi/2}\operatorname{P}_{n}^{m}(x)$, and in particular
+  $\operatorname{P}_{n}^{-1}(x) =
+  -\frac{1}{n(n+1)}\operatorname{P}_{n}^{1}(x)$. Hence, the derivative
+  can be written
+  \begin{equation}
+    \frac{\diff\operatorname{P}_{n}^{m}(x)}{\diff x} =
+    \begin{cases}
+      -\frac{1}{\sqrt{1-x^{2}}}\operatorname{P}_{n}^{1}(x) & m=0 \\
+      \frac{(n+m)(n-m+1)}{\sqrt{1-x^{2}}}\operatorname{P}_{n}^{m-1}(x) + \frac{mx}{1-x^{2}}\operatorname{P}_{n}^{m}(x) & m=1,2,\ldots
+    \end{cases}
+    \label{eq:dPmndx}
+  \end{equation}  
+  To summarize, the functions $P_{n}^{m}(x)$ used in Hansen correspond
+  to the functions $\operatorname{P}_{n}^{m}(x)$ implemented in
+  scipy.special.lpmv as
+  \begin{align}
+    P_{n}^{m}(x) &= (-1)^{m}\operatorname{P}_{n}^{m}(x) \\
+    \frac{\diff P_{n}^{m}(\cos\theta)}{\diff\theta} &= (-\sin\theta)\frac{\diff P_{n}^{m}(\cos\theta)}{\diff(\cos\theta)} = (-1)^{m}(-\sin\theta)\frac{\diff\operatorname{P}_{n}^{m}(\cos\theta)}{\diff(\cos\theta)}
+  \end{align}
+  with $\frac{\diff\operatorname{P}_{n}^{m}(x)}{\diff x}$ defined in
+  \eqref{eq:dPmndx}.
+
+\item Some special functions can be sensitive to high orders depending
+  on implementation. It has proven good to use standard libraries
+  rather than implementing text book formulas, for instance
+  \verb+wigners+ to implement the Wigner 3-j symbols, and the
+  \verb+scipy.special.jacobi+ for implementing the rotation
+  coefficients $d^{n}_{\mu m}(\theta)$.
+\end{itemize}
+
+\section{Implementation of spherical vector wave library}
+
+\begin{itemize}
+\item Handling of apparent singularity at $\theta=0$ and $\theta=\pi$:
+  identify arguments with $\theta=0$ and $\theta=\pi$, change to
+  $\theta=\delta$ and $\theta=\pi-\delta$ for small $\delta$.
+
+\item If we know the tangential components of the outgoing electric
+  field on a spherical surface, we can use the orthogonality of
+  tangential components \eqref{eq:orthotang} to compute
+  \begin{multline}
+    \int_{\phi=0}^{2\pi}\int_{\theta=0}^{\pi} \Big[ \{\Ev(r,\theta,\phi)\cdot\thetauv\} \{\Fv_{s,-m,n}^{(c)}(r,\theta,\phi)\cdot\thetauv\} \\
+    + \{\Ev(r,\theta,\phi)\cdot\phiuv\} \{\Fv_{s,-m,n}^{(c)}(r,\theta,\phi)\cdot\phiuv\} \Big] \sin\theta\diff\theta\diff\phi \\
+    = (-1)^{m}R_{sn}^{(3)}(kr)R_{sn}^{(c)}(kr)Q_{smn}^{(3)}
+  \end{multline}
+  The integral for the $\theta$ component can be written
+  \begin{multline}
+    \int_{\phi=0}^{2\pi}\int_{\theta=0}^{\pi} \{\Ev(r,\theta,\phi)\cdot\thetauv\} \{\Fv_{s,-m,n}^{(c)}(r,\theta,\phi)\cdot\thetauv\} \sin\theta\diff\theta\diff\phi \\
+    = \int_{\theta=0}^{\pi} \left[ \int_{\phi=0}^{2\pi}\{\Ev(r,\theta,\phi)\cdot\thetauv\} \eu^{-\iu m\phi}\diff\phi\right] \{\Fv_{s,-m,n}^{(c)}(r,\theta,0)\cdot\thetauv\} \sin\theta\diff\theta
+  \end{multline}
+  and similarly for the $\phi$ component. This illustrates that the
+  $\phi$ integral can be computed from the azimuth Fourier transform
+  of the field.
+
+  The far field is
+  \begin{equation}
+    \Fv(\theta,\phi) = \frac{1}{\sqrt{4\pi\eta}} \sum_{smn}Q_{smn}^{(3)}\Kv_{smn}(\theta,\phi) = \frac{1}{\sqrt{4\pi\eta}}\sum_{smn}Q_{smn}^{(3)}\Kv_{smn}(\theta,0)\eu^{\iu m\phi}
+  \end{equation}
+  which can be computed on a $\theta$-$\phi$ grid by an outer product
+  between vectors $\Kv_{smn}(\theta,0)$ and $\eu^{\iu m\phi}$.
+  
+\item The \texttt{scipy.special.lpmv} implementation overflows for
+  large orders, $N\geq86$. The package \texttt{pyshtools} implements
+  normalized Legendre polynomials to high orders (2800 claimed),
+  however it seems slower than \texttt{scipy.special.lpmv}.
+\end{itemize}
+
+\section{Application example: probe correction}
+
+The received signal is \cite[Eq. (3.10)]{Hansen1988}
+\begin{equation}
+  w(A,\chi,\theta,\phi) = \frac{v}{2}\sum_{smn,\sigma\mu\nu} T_{smn}\eu^{\iu m\phi} d_{\mu m}^{n}(\theta) \eu^{\iu\mu\chi} C_{\sigma\mu\nu}^{sn(3)}(kA) R_{\sigma\mu\nu}^{\mrm{p}}
+  \label{eq:transmissionformula}
+\end{equation}
+The purpose is to determine the transmitting coefficients $T_{smn}$ of
+the antenna under test (AUT) given $w$ and the receiving coefficients
+of the probe, $R_{\sigma\mu\nu}^{\mrm{p}}$. Assuming we have
+measurements for all angles $0<\chi<2\pi$, $0<\theta<\pi$, and
+$0<\phi<2\pi$, we can use the orthogonalities of the exponential
+function and the rotation coefficients $d_{\mu m}^{n}(\theta)$ to find
+\cite[Eqns. (4.51), (4.52)]{Hansen1988}
+\begin{multline}
+  w_{\mu m}^{n} = \frac{2n+1}{2(2\pi)^{2}}\int_{\chi=0}^{2\pi}\int_{\theta=0}^{\pi}\int_{\phi=0}^{2\pi} w(A,\chi,\theta,\phi) \eu^{-\iu\mu\chi}d_{\mu m}^{n}(\theta)\eu^{-\iu m\phi} \sin\theta\diff\phi\diff\theta\diff\chi \\
+  = \sum_{s} vT_{smn}P_{s\mu n}(kA) = vT_{1mn}P_{1\mu n}(kA) + vT_{2mn}P_{2\mu n}(kA)
+\end{multline}
+where we introduced the probe response constants as
+\begin{equation}
+  P_{s\mu n}(kA) = \frac{1}{2}\sum_{\sigma\nu}C_{\sigma\mu\nu}^{sn(3)}(kA)R_{\sigma\mu\nu}^{\mrm{p}}
+\end{equation}
+It is common that the probe has nonzero coefficients
+$R_{\sigma\mu\nu}^{\mrm{p}}$ for $\mu=\pm1$ only. In this case the
+equations reduce to
+\begin{align}
+  vT_{1mn}P_{11n}(kA) + vT_{2mn}P_{21n}(kA) &= w_{1m}^{n}(A) \\
+  vT_{1mn}P_{1,-1,n}(kA) + vT_{2mn}P_{2,-1,n}(kA) &= w_{-1,m}^{n}(A)
+\end{align}
+which can be solved for $T_{smn}$. For a $\mu=\pm1$ probe, we do not
+need to measure all angles $0<\chi<2\pi$, since we then have
+$w(A,\chi,\theta,\phi) = w_{1}\eu^{\iu\chi} + w_{-1}\eu^{-\iu\chi}$,
+where \cite[p. 110]{Hansen1988}
+\begin{align}
+  w_{1}(A,\theta,\phi) = \frac{1}{2} \left\{ w(A,0,\theta,\phi) - \iu w(A,\pi/2,\theta,\phi) \right\} \\
+  w_{-1}(A,\theta,\phi) = \frac{1}{2} \left\{ w(A,0,\theta,\phi) + \iu w(A,\pi/2,\theta,\phi) \right\} 
+\end{align}
+Hence, for a $\mu=\pm1$ probe it is sufficient to measure only for
+$\chi=0$ and $\chi=\pi/2$.
+
+We now turn to the formulation of the equations assuming we are
+restricted to the angle $\chi$ taking only two values, 0 or $\pi/2$ (or
+possibly $-\pi/2$), corresponding to the two orientations of the probe
+which determines polarization of the measured signal $w$.
+\begin{equation}
+  w_{m}(A,\chi,\theta) = \frac{1}{2\pi}\int_{\phi=0}^{2\pi} \eu^{-\iu m\phi}w(A,\chi,\theta,\phi) \diff\phi
+\end{equation}
+we rewrite \eqref{eq:transmissionformula} as
+\begin{equation}
+  w_{m}(A,\chi,\theta,\phi) = \sum_{sn,\sigma\mu\nu} vT_{smn} d_{\mu m}^{n}(\theta) \eu^{\iu\mu\chi} P_{s\mu n}(kA)
+\end{equation}
+Multiplying by $d_{\mu'm}^{n'}(\theta)\sin\theta$ and integrating, we find
+\begin{multline}
+  \int_{\theta=0}^{\pi}w_{m}(A,\chi,\theta) d_{\mu'm}^{n'}(\theta) \sin\theta\diff\theta\diff\phi \\
+  = \sum_{sn,\sigma\mu\nu} vT_{smn}\eu^{\iu\mu\chi} P_{s\mu n}(kA)\int_{\theta=0}^{\pi}  d_{\mu m}^{n}(\theta) d_{\mu'm}^{n'}(\theta) \sin\theta \diff\theta 
+\end{multline}
+The real factors
+\begin{equation}
+  D_{\mu\mu'm}^{nn'} = \int_{\theta=0}^{\pi}  d_{\mu m}^{n}(\theta) d_{\mu'm}^{n'}(\theta) \sin\theta \diff\theta 
+\end{equation}
+can be precomputed and stored. From \cite[Eq. (A2.10)]{Hansen1988}, it
+is clear that $D_{\mu\mu m}^{nn'} = \frac{2}{2n+1}\delta_{nn'}$. We
+then have the equation system
+\begin{align}
+  \int_{\theta=0}^{\pi}w_{m}(A,0,\theta)d_{\mu'm}^{n'}(\theta)\sin\theta\diff\theta &= \sum_{sn} vT_{smn} \sum_{\sigma\mu\nu} P_{s\mu n}(kA) D_{\mu\mu'n}^{nn'} \label{eq:probecorrectionA} \\
+  \int_{\theta=0}^{\pi}w_{m}(A,\pi/2,\theta)d_{\mu'm}^{n'}(\theta)\sin\theta\diff\theta &= \sum_{sn} vT_{smn} \sum_{\sigma\mu\nu} \eu^{\iu\mu\pi/2} P_{s\mu n}(kA) D_{\mu\mu'n}^{nn'} \label{eq:probecorrectionB}
+\end{align}
+To determine $R_{\sigma\mu\nu}^{\mrm{p}}$, we first assume the probe
+is reciprocal and exists in two identical realizations. We then have \cite[Eq. (3.21)]{Hansen1988}
+\begin{equation}
+  T_{\sigma,-\mu,\nu}^{\mrm{p}} = (-1)^{\mu} R_{\sigma\mu\nu}^{\mrm{p}}
+\end{equation}
+However, the probe used as AUT is also rotated by $\pi$ around the
+$y$-axis so that it is pointing towards the probe. Since
+\cite[Eq. (A2.16)]{Hansen1988}
+\begin{equation}
+  d_{\mu m}^{n}(\pi) = (-1)^{n+m}\delta_{\mu,-m}
+\end{equation}
+we then have
+\begin{equation}
+  T_{s\mu n} = \sum_{m=-n}^{n}T_{smn}^{\mrm{p}}d_{\mu m}^{n}(\pi) = (-1)^{n-\mu}T_{s,-\mu,n}^{\mrm{p}} = (-1)^{n-\mu}(-1)^{\mu}R_{s\mu n}^{\mrm{p}} = (-1)^{n} R_{s\mu n}^{\mrm{p}}
+\end{equation}
+To determine the probe coefficients $R_{smn}^{\mrm{p}}$, now make
+measurements $w^{\mrm{p}}(A,\chi,\theta,\phi)$ using the probe
+antennas both as probe and AUT. We can then start with a guess for the
+probe receiving coefficients as a Hertzian dipole, that is,
+\begin{equation}
+  R_{211}^{\mrm{p},0} = -R_{2,-1,1}^{\mrm{p},0} = -1/\sqrt{2}, \quad \text{all other coefficients zero}
+\end{equation}
+Use equations \eqref{eq:probecorrectionA} and
+\eqref{eq:probecorrectionB} to solve for $T_{smn}^{1}$, and compute
+$R_{smn}^{\mrm{p},1} = (-1)^{n}T_{smn}^{1}$. Use $R_{smn}^{\mrm{p},1}$
+to solve for $T_{smn}^{2}$, and iterate until convergence.
+
+As it turns out, there seems to be a tendency for the iteration to get
+stuck in a bifurcation, where
+$R_{smn}^{\mrm{p},i}=R_{smn}^{\mrm{p,e}}$ for $i$ even and
+$R_{smn}^{\mrm{p},i}=R_{smn}^{\mrm{p,o}}$ for $i$ odd. In order to
+counteract this, the iteration can be slightly changed so that once
+$R_{smn}^{\mrm{p},i+1}$ has been computed, it is recomputed as
+\begin{equation}
+  R_{smn}^{\mrm{p},i+1} \leftarrow \frac{1}{2}\left( R_{smn}^{\mrm{p},i+1} + R_{smn}^{\mrm{p},i} \right)
+\end{equation}
+
+\bibliography{add,total}
+\bibliographystyle{teorel}
+
+\end{document}
